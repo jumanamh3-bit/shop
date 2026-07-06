@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>حسابات المحل</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght=500;700;900&family=IBM+Plex+Sans+Arabic:wght=400;500;600&family=IBM+Plex+Mono:wght=500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     --paper: #F3EEDC;
@@ -336,6 +336,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
+const ids = ['sales','purchases','expenses','networkStore','networkOthers'];
 const DEFAULT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxdT32hhoJFzEzSPXJfNvtjTSBd4TUoyF0Ma8Fq_B_EP29IwH86gF86evqPIKvE4EJVKg/exec';
 let webAppUrl = null;
 let history = []; // cached rows from sheet
@@ -352,6 +353,29 @@ function todayStr(){
   const tz = d.getTimezoneOffset()*60000;
   return new Date(d - tz).toISOString().slice(0,10);
 }
+
+function cleanDateStr(dateStr) {
+  if (!dateStr) return '';
+  const s = String(dateStr).trim();
+
+  // الحالة الأبسط: يبدأ بصيغة ISO نظيفة مثل 2026-07-06
+  const isoMatch = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+  }
+
+  // الحالة الثانية: صيغة JS الطويلة مثل "Mon Jul 06 2026 00:00:00 GMT+0300"
+  const months = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',
+                   Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+  const longMatch = s.match(/([A-Za-z]{3})\s+(\d{1,2})\s+(\d{4})/);
+  if (longMatch && months[longMatch[1]]) {
+    const day = longMatch[2].padStart(2,'0');
+    return `${longMatch[3]}-${months[longMatch[1]]}-${day}`;
+  }
+
+  return s.slice(0,10);
+}
+
 function showToast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -415,7 +439,7 @@ function openModal(){
 function closeModal(){ document.getElementById('modalBg').classList.remove('show'); }
 document.getElementById('modalSave').onclick = () => {
   const url = document.getElementById('urlInput').value.trim();
-  if(!url){ showToast('الرابط'); return; }
+  if(!url){ showToast('الرابط مرسل فارغ'); return; }
   closeModal();
   saveSettings(url);
 };
@@ -428,7 +452,11 @@ async function refreshHistory(){
     const res = await fetch(webAppUrl);
     const json = await res.json();
     if(json.status === 'ok'){
-      history = json.data || [];
+      // تنظيف كل التواريخ داخل المصفوفة فور استلامها
+      history = (json.data || []).map(r => {
+        r.date = cleanDateStr(r.date);
+        return r;
+      });
       history.sort((a,b)=> a.date < b.date ? 1 : -1);
       renderHistory();
       loadDateIntoForm(document.getElementById('dateInput').value);
@@ -461,7 +489,7 @@ function renderHistory(){
     const totalCash = rows.reduce((s,r)=>s+Number(r.netCash||0),0);
     const totalNet = rows.reduce((s,r)=>s+Number(r.netNetwork||0),0);
     const [y,m] = key.split('-');
-    const label = monthNames[parseInt(m,10)-1] + ' ' + y;
+    const label = (monthNames[parseInt(m,10)-1] || 'شهر ' + m) + ' ' + y;
 
     html += `<div class="month-block ${idx===0?'':'collapsed'}" data-key="${key}">
       <div class="month-head">
@@ -511,7 +539,8 @@ function renderHistory(){
 }
 
 function loadDateIntoForm(dateStr){
-  const existing = history.find(r=>r.date === dateStr);
+  const cleanStr = cleanDateStr(dateStr);
+  const existing = history.find(r=>r.date === cleanStr);
   const pill = document.getElementById('statusPill');
   if(existing){
     document.getElementById('sales').value = existing.sales;
@@ -536,13 +565,13 @@ document.getElementById('dateInput').addEventListener('change', (e)=> loadDateIn
 document.getElementById('saveBtn').addEventListener('click', async ()=>{
   if(!webAppUrl){ openModal(); return; }
   const date = document.getElementById('dateInput').value;
-  if(!date){ showToast('اختر التاريخ أول'); return; }
+  if(!date){ showToast('اختر التاريخ'); return; }
   const values = recalc();
-  const payload = { date, ...values };
+  const payload = { date: cleanDateStr(date), ...values };
 
   const btn = document.getElementById('saveBtn');
   btn.disabled = true;
-  btn.textContent = 'جاري الحفظ...';
+  btn.textContent = 'جارٍ الحفظ...';
   try{
     await fetch(webAppUrl, {
       method: 'POST',
@@ -552,7 +581,7 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
     showToast('تم حفظ يوم ' + date);
     await refreshHistory();
   }catch(err){
-    showToast('خطأ أثناء الحفظ، حاول مرة ثانية');
+    showToast('خطأ أثناء الحفظ، حاول مرة أخرى');
   }finally{
     btn.disabled = false;
     btn.textContent = 'حفظ اليوم';
