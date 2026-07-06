@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>حسابات المحل</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght=500;700;900&family=IBM+Plex+Sans+Arabic:wght=400;500;600&family=IBM+Plex+Mono:wght=500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     --paper: #F3EEDC;
@@ -353,6 +353,29 @@ function todayStr(){
   const tz = d.getTimezoneOffset()*60000;
   return new Date(d - tz).toISOString().slice(0,10);
 }
+
+// دالة مخصصة لتنظيف وتوحيد صيغة التاريخ القادم من جوجل شيت
+function cleanDateStr(dateStr) {
+  if (!dateStr) return '';
+  const s = String(dateStr).trim();
+  // إذا كان التاريخ يحتوي على توقيت النظام الطويل مثل Mon Jul...
+  if (s.includes(' ') && (s.includes('GMT') || s.includes('+'))) {
+    try {
+      const parsedDate = new Date(s);
+      if (!isNaN(parsedDate.getTime())) {
+        const tz = parsedDate.getTimezoneOffset() * 60000;
+        return new Date(parsedDate - tz).toISOString().slice(0, 10);
+      }
+    } catch(e){}
+  }
+  // إذا كان بصيغة الـ ISO الطويلة
+  if (s.includes('T')) {
+    return s.split('T')[0];
+  }
+  // لو كان بالصيغة العادية النظيفة يأخذ أول 10 حروف
+  return s.slice(0, 10);
+}
+
 function showToast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -416,7 +439,7 @@ function openModal(){
 function closeModal(){ document.getElementById('modalBg').classList.remove('show'); }
 document.getElementById('modalSave').onclick = () => {
   const url = document.getElementById('urlInput').value.trim();
-  if(!url){ showToast('الرابط'); return; }
+  if(!url){ showToast('الرابط مرسل فارغ'); return; }
   closeModal();
   saveSettings(url);
 };
@@ -429,7 +452,11 @@ async function refreshHistory(){
     const res = await fetch(webAppUrl);
     const json = await res.json();
     if(json.status === 'ok'){
-      history = json.data || [];
+      // تنظيف كل التواريخ داخل المصفوفة فور استلامها
+      history = (json.data || []).map(r => {
+        r.date = cleanDateStr(r.date);
+        return r;
+      });
       history.sort((a,b)=> a.date < b.date ? 1 : -1);
       renderHistory();
       loadDateIntoForm(document.getElementById('dateInput').value);
@@ -462,7 +489,7 @@ function renderHistory(){
     const totalCash = rows.reduce((s,r)=>s+Number(r.netCash||0),0);
     const totalNet = rows.reduce((s,r)=>s+Number(r.netNetwork||0),0);
     const [y,m] = key.split('-');
-    const label = monthNames[parseInt(m,10)-1] + ' ' + y;
+    const label = (monthNames[parseInt(m,10)-1] || 'شهر ' + m) + ' ' + y;
 
     html += `<div class="month-block ${idx===0?'':'collapsed'}" data-key="${key}">
       <div class="month-head">
@@ -512,7 +539,8 @@ function renderHistory(){
 }
 
 function loadDateIntoForm(dateStr){
-  const existing = history.find(r=>r.date === dateStr);
+  const cleanStr = cleanDateStr(dateStr);
+  const existing = history.find(r=>r.date === cleanStr);
   const pill = document.getElementById('statusPill');
   if(existing){
     document.getElementById('sales').value = existing.sales;
@@ -537,13 +565,13 @@ document.getElementById('dateInput').addEventListener('change', (e)=> loadDateIn
 document.getElementById('saveBtn').addEventListener('click', async ()=>{
   if(!webAppUrl){ openModal(); return; }
   const date = document.getElementById('dateInput').value;
-  if(!date){ showToast('اختر التاريخ أول'); return; }
+  if(!date){ showToast('اختر التاريخ'); return; }
   const values = recalc();
-  const payload = { date, ...values };
+  const payload = { date: cleanDateStr(date), ...values };
 
   const btn = document.getElementById('saveBtn');
   btn.disabled = true;
-  btn.textContent = 'جاري الحفظ...';
+  btn.textContent = 'جارٍ الحفظ...';
   try{
     await fetch(webAppUrl, {
       method: 'POST',
@@ -553,7 +581,7 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
     showToast('تم حفظ يوم ' + date);
     await refreshHistory();
   }catch(err){
-    showToast('خطأ أثناء الحفظ، حاول مرة ثانية');
+    showToast('خطأ أثناء الحفظ، حاول مرة أخرى');
   }finally{
     btn.disabled = false;
     btn.textContent = 'حفظ اليوم';
