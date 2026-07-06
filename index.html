@@ -505,7 +505,7 @@ function renderHistory(){
         <table>
           <thead><tr>
             <th>التاريخ</th><th>مبيعات</th><th>مشتريات</th><th>مصاريف</th>
-            <th>صافي الكاش</th><th>شبكة للمحل</th><th>للآخرين</th><th>صافي الشبكة</th><th></th>
+            <th>صافي الكاش</th><th>شبكة للمحل</th><th>للآخرين</th><th>صافي الشبكة</th>
           </tr></thead>
           <tbody>
             ${rows.sort((a,b)=> a.date<b.date?1:-1).map(r=>`
@@ -518,14 +518,13 @@ function renderHistory(){
                 <td>${fmt(r.networkStore)}</td>
                 <td>${fmt(r.networkOthers)}</td>
                 <td class="net-net">${fmt(r.netNetwork)}</td>
-<td><button class="del-btn" data-date="${r.date}" style="background:var(--red);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;">حذف</button></td>
               </tr>`).join('')}
           </tbody>
         </table>
       </div>
     </div>`;
   });
-container.innerHTML = html;
+  container.innerHTML = html;
 
   container.querySelectorAll('.month-head').forEach(h=>{
     h.addEventListener('click', ()=> h.parentElement.classList.toggle('collapsed'));
@@ -535,28 +534,6 @@ container.innerHTML = html;
       document.getElementById('dateInput').value = row.dataset.date;
       loadDateIntoForm(row.dataset.date);
       window.scrollTo({top:0, behavior:'smooth'});
-    });
-  });
-  container.querySelectorAll('.del-btn').forEach(btn=>{
-    btn.addEventListener('click', async (ev)=>{
-      ev.stopPropagation(); // عشان ما يفتح الصف للتعديل بنفس الوقت
-      const date = btn.dataset.date;
-      if(!confirm('متأكد تبغى تحذف يوم ' + date + '؟')) return;
-      btn.disabled = true;
-      btn.textContent = '...';
-      try{
-        await fetch(webAppUrl, {
-          method: 'POST',
-          headers: {'Content-Type':'text/plain;charset=utf-8'},
-          body: JSON.stringify({ action: 'delete', date: date })
-        });
-        showToast('تم حذف يوم ' + date);
-        await refreshHistory();
-      }catch(err){
-        showToast('خطأ أثناء الحذف');
-        btn.disabled = false;
-        btn.textContent = 'حذف';
-      }
     });
   });
 }
