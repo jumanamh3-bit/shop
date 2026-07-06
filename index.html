@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>دفتر حسابات المحل</title>
+<title>حسابات المحل</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
@@ -227,14 +227,14 @@
 
   <div class="topbar">
     <div class="brand">
-      <h1>دفتر حسابات المحل</h1>
-      <p>تسجيل يومي للكاش والشبكة، محسوب تلقائيًا</p>
+      <h1>حسابات المحل</h1>
+      <p>تقارير يومية وشهرية</p>
     </div>
     <button class="gear-btn" id="settingsBtn" title="الإعدادات">⚙</button>
   </div>
 
   <div class="no-url-banner" id="noUrlBanner" style="display:none;">
-    <span>لسه ما ربطت البرنامج بجوجل شيت. اضغط الزر عشان تحط الرابط.</span>
+    <span>الربط مع قوقل شيت للتخزين</span>
     <button id="connectNowBtn">ربط الآن</button>
   </div>
 
@@ -281,7 +281,6 @@
         </div>
         <div class="field">
           <label>الشبكة للآخرين
-            <small>مبالغ محلات ثانية، للتوثيق فقط</small>
           </label>
           <input type="number" id="networkOthers" inputmode="decimal" placeholder="0">
         </div>
@@ -289,11 +288,11 @@
       <div style="padding:0 18px;">
         <div class="tape" id="networkTape">
           <div class="tape-row"><span>الشبكة للمحل</span><span id="t_networkStore">٠٫٠٠</span></div>
-          <div class="tape-row"><span>الشبكة للآخرين (أمانة)</span><span id="t_networkOthers">٠٫٠٠</span></div>
+          <div class="tape-row"><span>الشبكة للآخرين</span><span id="t_networkOthers">٠٫٠٠</span></div>
           <div class="tape-row total"><span>صافي الشبكة</span><span id="t_netNetwork">٠٫٠٠</span></div>
         </div>
       </div>
-      <div class="hint">صافي الشبكة = الشبكة للمحل فقط (حصة الآخرين أمانة ما تدخل حسابك)</div>
+      <div class="hint">صافي الشبكة = الشبكة للمحل فقط </div>
     </div>
   </div>
 
@@ -315,7 +314,7 @@
 
   <div class="section-title">السجل الشهري</div>
   <div id="historyContainer">
-    <div class="empty-state">لسه ما فيه بيانات محفوظة.</div>
+    <div class="empty-state">لا توجد بيانات محفوظة.</div>
   </div>
 
 </div>
@@ -324,8 +323,7 @@
   <div class="modal">
     <h3>ربط جوجل شيت</h3>
     <p>
-      حط رابط الويب أب (Web app URL) اللي حصلت عليه بعد نشر كود Apps Script على شيتك.
-      البيانات كلها بتتخزن بشيتك الخاص، ما تتخزن عندنا.
+رابط الويب أب (Web app URL)
     </p>
     <input type="text" id="urlInput" placeholder="https://script.google.com/macros/s/....../exec">
     <div class="modal-actions">
@@ -412,7 +410,7 @@ async function saveSettings(url){
     showToast('تم حفظ الرابط بنجاح');
     await refreshHistory();
   }catch(err){
-    showToast('صار خطأ بحفظ الرابط، حاول مرة ثانية');
+    showToast('خطأ في حفظ الرابط');
   }
 }
 
@@ -426,7 +424,7 @@ function openModal(){
 function closeModal(){ document.getElementById('modalBg').classList.remove('show'); }
 document.getElementById('modalSave').onclick = () => {
   const url = document.getElementById('urlInput').value.trim();
-  if(!url){ showToast('حط الرابط أول'); return; }
+  if(!url){ showToast('الرابط'); return; }
   closeModal();
   saveSettings(url);
 };
@@ -447,14 +445,14 @@ async function refreshHistory(){
       showToast('تعذر تحميل البيانات من الشيت');
     }
   }catch(err){
-    container.innerHTML = '<div class="empty-state">تعذر الاتصال بجوجل شيت. تأكد من الرابط ومن إعدادات النشر (Anyone).</div>';
+    container.innerHTML = 'تعذر الاتصال بجوجل شيت';
   }
 }
 
 function renderHistory(){
   const container = document.getElementById('historyContainer');
   if(!history.length){
-    container.innerHTML = '<div class="empty-state">لسه ما فيه بيانات محفوظة.</div>';
+    container.innerHTML = '<div class="empty-state">لا توجد بيانات محفوظة.</div>';
     return;
   }
   const months = {};
@@ -530,7 +528,7 @@ function loadDateIntoForm(dateStr){
     document.getElementById('expenses').value = existing.expenses;
     document.getElementById('networkStore').value = existing.networkStore;
     document.getElementById('networkOthers').value = existing.networkOthers;
-    pill.textContent = 'يوم محفوظ (تقدر تعدله)';
+    pill.textContent = 'يوم محفوظ';
     pill.classList.add('editing');
     isEditingExisting = true;
   } else {
@@ -563,7 +561,7 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
     showToast('تم حفظ يوم ' + date);
     await refreshHistory();
   }catch(err){
-    showToast('صار خطأ أثناء الحفظ، حاول مرة ثانية');
+    showToast('خطأ أثناء الحفظ، حاول مرة ثانية');
   }finally{
     btn.disabled = false;
     btn.textContent = 'حفظ اليوم';
