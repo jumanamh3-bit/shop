@@ -625,7 +625,7 @@ document.getElementById('saveBtn').addEventListener('click', async ()=>{
 
 async function deleteDay(date){
   if(!webAppUrl || !date) return;
-  if(!confirm('متأكد إنك تبي تحذف بيانات يوم ' + date + '؟ لا يمكن التراجع.')) return;
+  if(!confirm('هل أنت متأكد من حذف بيانات يوم ' + date)) return;
   try{
     const res = await fetch(webAppUrl, {
       method: 'POST',
