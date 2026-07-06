@@ -292,7 +292,7 @@
           <div class="tape-row total"><span>صافي الشبكة</span><span id="t_netNetwork">٠٫٠٠</span></div>
         </div>
       </div>
-      <div class="hint">صافي الشبكة = الشبكة للمحل - الشبكة للآخرين </div>
+      <div class="hint">صافي الشبكة = الشبكة للمحل فقط </div>
     </div>
   </div>
 
@@ -336,7 +336,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const ids = ['sales','purchases','expenses','networkStore','networkOthers'];
+const DEFAULT_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbxdT32hhoJFzEzSPXJfNvtjTSBd4TUoyF0Ma8Fq_B_EP29IwH86gF86evqPIKvE4EJVKg/exec';
 let webAppUrl = null;
 let history = []; // cached rows from sheet
 let isEditingExisting = false;
@@ -367,7 +367,7 @@ function recalc(){
   const networkOthers = Number(document.getElementById('networkOthers').value)||0;
 
   const netCash = sales - purchases - expenses;
-  const netNetwork = networkStore;
+  const netNetwork = networkStore - networkOthers;;
   const total = netCash + netNetwork;
 
   document.getElementById('t_sales').textContent = fmt(sales);
@@ -391,29 +391,18 @@ ids.forEach(id => document.getElementById(id).addEventListener('input', recalc))
 
 // ---- settings (Web App URL) via persistent artifact storage ----
 async function loadSettings(){
-  try{
-    const res = await window.storage.get('shop_ledger_webapp_url', false);
-    if(res && res.value){
-      webAppUrl = res.value;
-      document.getElementById('noUrlBanner').style.display = 'none';
-      await refreshHistory();
-    } else {
-      document.getElementById('noUrlBanner').style.display = 'flex';
-    }
-  }catch(err){
-    document.getElementById('noUrlBanner').style.display = 'flex';
-  }
+  let saved = null;
+  try{ saved = localStorage.getItem('shop_ledger_webapp_url'); }catch(err){}
+  webAppUrl = saved || DEFAULT_WEB_APP_URL;
+  document.getElementById('noUrlBanner').style.display = 'none';
+  await refreshHistory();
 }
 async function saveSettings(url){
-  try{
-    await window.storage.set('shop_ledger_webapp_url', url, false);
-    webAppUrl = url;
-    document.getElementById('noUrlBanner').style.display = 'none';
-    showToast('تم حفظ الرابط بنجاح');
-    await refreshHistory();
-  }catch(err){
-    showToast('خطأ في حفظ الرابط');
-  }
+  try{ localStorage.setItem('shop_ledger_webapp_url', url); }catch(err){}
+  webAppUrl = url;
+  document.getElementById('noUrlBanner').style.display = 'none';
+  showToast('تم حفظ الرابط بنجاح');
+  await refreshHistory();
 }
 
 document.getElementById('settingsBtn').onclick = openModal;
