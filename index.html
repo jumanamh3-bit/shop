@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>حسابات المحل</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght=500;700;900&family=IBM+Plex+Sans+Arabic:wght=400;500;600&family=IBM+Plex+Mono:wght=500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
 <style>
   :root{
     --paper: #F3EEDC;
@@ -102,6 +102,13 @@
   }
   .field input:focus{border-color:var(--gold);background:#fff;}
 
+  .note-input{
+    width:96px;text-align:right;font-family:'IBM Plex Sans Arabic',sans-serif;
+    font-size:12px;border:1px solid var(--line);border-radius:8px;
+    padding:7px 9px;background:var(--paper);color:var(--ink-soft);outline:none;
+  }
+  .note-input:focus{border-color:var(--gold);background:#fff;color:var(--ink);}
+
   /* Receipt tape */
 .tape{
   margin:14px 0 6px;padding:14px 16px 18px;
@@ -183,6 +190,7 @@
   td.net-cash{color:var(--green);font-weight:600;}
   td.net-net{color:var(--indigo);font-weight:600;}
   td.row-actions{white-space:nowrap;}
+  td.notes-cell{max-width:140px;font-size:11.5px;color:var(--ink-soft);white-space:normal;text-align:right;}
   .row-del-btn{
     background:transparent;border:1px solid var(--line);color:var(--red);
     border-radius:7px;width:26px;height:26px;cursor:pointer;font-size:13px;line-height:1;
@@ -269,10 +277,12 @@
         </div>
         <div class="field">
           <label>المشتريات</label>
+          <input type="text" id="notesPurchases" class="note-input" placeholder="ملاحظة">
           <input type="number" id="purchases" inputmode="decimal" placeholder="0">
         </div>
         <div class="field">
           <label>المصاريف</label>
+          <input type="text" id="notesExpenses" class="note-input" placeholder="ملاحظة">
           <input type="number" id="expenses" inputmode="decimal" placeholder="0">
         </div>
       </div>
@@ -307,7 +317,7 @@
           <div class="tape-row total"><span>صافي الشبكة</span><span id="t_netNetwork">٠٫٠٠</span></div>
         </div>
       </div>
-      <div class="hint">صافي الشبكة = الشبكة للمحل فقط </div>
+      <div class="hint">صافي الشبكة = الشبكة للمحل − الشبكة للآخرين</div>
     </div>
   </div>
 
@@ -376,13 +386,11 @@ function cleanDateStr(dateStr) {
   if (!dateStr) return '';
   const s = String(dateStr).trim();
 
-  // الحالة الأبسط: يبدأ بصيغة ISO نظيفة مثل 2026-07-06
   const isoMatch = s.match(/(\d{4})-(\d{2})-(\d{2})/);
   if (isoMatch) {
     return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
   }
 
-  // الحالة الثانية: صيغة JS الطويلة مثل "Mon Jul 06 2026 00:00:00 GMT+0300"
   const months = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',
                    Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
   const longMatch = s.match(/([A-Za-z]{3})\s+(\d{1,2})\s+(\d{4})/);
@@ -407,6 +415,8 @@ function recalc(){
   const expenses = Number(document.getElementById('expenses').value)||0;
   const networkStore = Number(document.getElementById('networkStore').value)||0;
   const networkOthers = Number(document.getElementById('networkOthers').value)||0;
+  const notesPurchases = document.getElementById('notesPurchases').value || '';
+  const notesExpenses = document.getElementById('notesExpenses').value || '';
 
   const netCash = sales - purchases - expenses;
   const netNetwork = networkStore - networkOthers;
@@ -426,10 +436,12 @@ function recalc(){
   document.getElementById('sum_netNetwork').textContent = fmt(netNetwork);
   document.getElementById('sum_total').textContent = fmt(total);
 
-  return {sales, purchases, expenses, netCash, networkStore, networkOthers, netNetwork};
+  return {sales, purchases, expenses, netCash, networkStore, networkOthers, netNetwork, notesPurchases, notesExpenses};
 }
 
 ids.forEach(id => document.getElementById(id).addEventListener('input', recalc));
+document.getElementById('notesPurchases').addEventListener('input', recalc);
+document.getElementById('notesExpenses').addEventListener('input', recalc);
 
 // ---- settings (Web App URL) ----
 async function loadSettings(){
@@ -470,9 +482,10 @@ async function refreshHistory(){
     const res = await fetch(webAppUrl);
     const json = await res.json();
     if(json.status === 'ok'){
-      // تنظيف كل التواريخ داخل المصفوفة فور استلامها
       history = (json.data || []).map(r => {
         r.date = cleanDateStr(r.date);
+        r.notesPurchases = r.notesPurchases || '';
+        r.notesExpenses = r.notesExpenses || '';
         return r;
       });
       history.sort((a,b)=> a.date < b.date ? 1 : -1);
@@ -484,6 +497,10 @@ async function refreshHistory(){
   }catch(err){
     container.innerHTML = 'تعذر الاتصال بجوجل شيت';
   }
+}
+
+function escapeHtml(s){
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 function renderHistory(){
@@ -523,7 +540,7 @@ function renderHistory(){
         <table>
           <thead><tr>
             <th>التاريخ</th><th>مبيعات</th><th>مشتريات</th><th>مصاريف</th>
-            <th>صافي الكاش</th><th>شبكة للمحل</th><th>للآخرين</th><th>صافي الشبكة</th><th></th>
+            <th>صافي الكاش</th><th>شبكة للمحل</th><th>للآخرين</th><th>صافي الشبكة</th><th>ملاحظة المشتريات</th><th>ملاحظة المصاريف</th><th></th>
           </tr></thead>
           <tbody>
             ${rows.sort((a,b)=> a.date<b.date?1:-1).map(r=>`
@@ -536,6 +553,8 @@ function renderHistory(){
                 <td>${fmt(r.networkStore)}</td>
                 <td>${fmt(r.networkOthers)}</td>
                 <td class="net-net">${fmt(r.netNetwork)}</td>
+                <td class="notes-cell">${escapeHtml(r.notesPurchases)}</td>
+                <td class="notes-cell">${escapeHtml(r.notesExpenses)}</td>
                 <td class="row-actions"><button type="button" class="row-del-btn" data-date="${r.date}" title="حذف">✕</button></td>
               </tr>`).join('')}
           </tbody>
@@ -550,7 +569,7 @@ function renderHistory(){
   });
   container.querySelectorAll('.editable-row').forEach(row=>{
     row.addEventListener('click', (ev)=>{
-      if(ev.target.closest('.row-del-btn')) return; // ما نفتح التعديل لو ضغط زر الحذف
+      if(ev.target.closest('.row-del-btn')) return;
       document.getElementById('dateInput').value = row.dataset.date;
       loadDateIntoForm(row.dataset.date);
       window.scrollTo({top:0, behavior:'smooth'});
@@ -576,12 +595,16 @@ function loadDateIntoForm(dateStr){
     document.getElementById('expenses').value = existing.expenses;
     document.getElementById('networkStore').value = existing.networkStore;
     document.getElementById('networkOthers').value = existing.networkOthers;
+    document.getElementById('notesPurchases').value = existing.notesPurchases || '';
+    document.getElementById('notesExpenses').value = existing.notesExpenses || '';
     pill.textContent = 'يوم محفوظ';
     pill.classList.add('editing');
     isEditingExisting = true;
     deleteBtn.hidden = false;
   } else {
     ids.forEach(id => document.getElementById(id).value = '');
+    document.getElementById('notesPurchases').value = '';
+    document.getElementById('notesExpenses').value = '';
     pill.textContent = 'يوم جديد';
     pill.classList.remove('editing');
     isEditingExisting = false;
