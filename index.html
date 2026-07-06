@@ -103,13 +103,13 @@
   .field input:focus{border-color:var(--gold);background:#fff;}
 
   /* Receipt tape */
-  .tape{
-    margin:14px 0 6px;padding:14px 16px 18px;
-    background:repeating-linear-gradient(180deg,#fff,#fff 26px, #FAF7EC 26px, #FAF7EC 52px);
-    border:1px dashed var(--line);border-radius:10px;
-    font-family:'IBM Plex Mono',monospace;font-size:13px;
-    position:relative;
-  }
+.tape{
+  margin:14px 0 6px;padding:14px 16px 18px;
+  background:#fff;
+  border:1px dashed var(--line);border-radius:10px;
+  font-family:'IBM Plex Mono',monospace;font-size:13px;
+  position:relative;
+}
   .tape::after{
     content:"";position:absolute;left:14px;right:14px;bottom:-6px;height:12px;
     background-image:radial-gradient(circle at 6px 0, var(--paper) 5px, transparent 6px);
@@ -343,8 +343,10 @@ let isEditingExisting = false;
 
 function fmt(n){
   n = Number(n)||0;
-  return n.toLocaleString('ar-EG', {minimumFractionDigits:2, maximumFractionDigits:2});
+  n = Math.round(n * 100) / 100; // avoid floating point noise
+  return String(n);
 }
+  
 function todayStr(){
   const d = new Date();
   const tz = d.getTimezoneOffset()*60000;
