@@ -273,7 +273,7 @@
     </div>
 
     <div class="card network">
-      <div class="card-head"><span>قسم الشبكة</span><span class="tag">NETWORK</span></div>
+      <div class="card-head"><span>قسم الشبكة</span><span class="tag">CARD</span></div>
       <div class="card-body">
         <div class="field">
           <label>الشبكة للمحل</label>
@@ -354,26 +354,26 @@ function todayStr(){
   return new Date(d - tz).toISOString().slice(0,10);
 }
 
-// دالة مخصصة لتنظيف وتوحيد صيغة التاريخ القادم من جوجل شيت
 function cleanDateStr(dateStr) {
   if (!dateStr) return '';
   const s = String(dateStr).trim();
-  // إذا كان التاريخ يحتوي على توقيت النظام الطويل مثل Mon Jul...
-  if (s.includes(' ') && (s.includes('GMT') || s.includes('+'))) {
-    try {
-      const parsedDate = new Date(s);
-      if (!isNaN(parsedDate.getTime())) {
-        const tz = parsedDate.getTimezoneOffset() * 60000;
-        return new Date(parsedDate - tz).toISOString().slice(0, 10);
-      }
-    } catch(e){}
+
+  // الحالة الأبسط: يبدأ بصيغة ISO نظيفة مثل 2026-07-06
+  const isoMatch = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
   }
-  // إذا كان بصيغة الـ ISO الطويلة
-  if (s.includes('T')) {
-    return s.split('T')[0];
+
+  // الحالة الثانية: صيغة JS الطويلة مثل "Mon Jul 06 2026 00:00:00 GMT+0300"
+  const months = {Jan:'01',Feb:'02',Mar:'03',Apr:'04',May:'05',Jun:'06',
+                   Jul:'07',Aug:'08',Sep:'09',Oct:'10',Nov:'11',Dec:'12'};
+  const longMatch = s.match(/([A-Za-z]{3})\s+(\d{1,2})\s+(\d{4})/);
+  if (longMatch && months[longMatch[1]]) {
+    const day = longMatch[2].padStart(2,'0');
+    return `${longMatch[3]}-${months[longMatch[1]]}-${day}`;
   }
-  // لو كان بالصيغة العادية النظيفة يأخذ أول 10 حروف
-  return s.slice(0, 10);
+
+  return s.slice(0,10);
 }
 
 function showToast(msg){
@@ -391,7 +391,7 @@ function recalc(){
   const networkOthers = Number(document.getElementById('networkOthers').value)||0;
 
   const netCash = sales - purchases - expenses;
-  const netNetwork = networkStore - networkOthers;;
+  const netNetwork = networkStore - networkOthers;
   const total = netCash + netNetwork;
 
   document.getElementById('t_sales').textContent = fmt(sales);
