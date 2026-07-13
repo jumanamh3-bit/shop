@@ -185,7 +185,6 @@
   th,td{padding:8px 10px;text-align:center;border-top:1px solid var(--paper-deep);}
   th{color:var(--ink-soft);font-weight:600;font-size:11.5px;}
   td.date-cell{font-family:'IBM Plex Mono',monospace;font-weight:600;}
-  td.day-cell{font-family:'IBM Plex Mono',monospace;color:var(--ink-soft);}
   tr.editable-row{cursor:pointer;}
   tr.editable-row:hover{background:var(--green-soft);}
   td.net-cash{color:var(--green);font-weight:600;}
@@ -363,14 +362,6 @@ function todayStr(){
   return new Date(d - tz).toISOString().slice(0,10);
 }
 
-function getDayAbbr(dateStr){
-  const days = ['Sun.','Mon.','Tue.','Wed.','Thu.','Fri.','Sat.'];
-  const parts = String(dateStr).split('-');
-  if(parts.length !== 3) return '';
-  const d = new Date(Number(parts[0]), Number(parts[1])-1, Number(parts[2]));
-  return days[d.getDay()];
-}
-
 function cleanDateStr(dateStr) {
   if (!dateStr) return '';
   const s = String(dateStr).trim();
@@ -500,14 +491,13 @@ function renderHistory(){
       <div class="rows-wrap">
         <table>
           <thead><tr>
-            <th>التاريخ</th><th>اليوم</th><th>مبيعات</th><th>مشتريات</th><th>مصاريف</th>
+            <th>التاريخ</th><th>مبيعات</th><th>مشتريات</th><th>مصاريف</th>
             <th>صافي الكاش</th><th>شبكة للمحل</th><th>للآخرين</th><th>صافي الشبكة</th><th>ملاحظة المشتريات</th><th>ملاحظة المصاريف</th><th></th>
           </tr></thead>
           <tbody>
             ${rows.sort((a,b)=> a.date<b.date?1:-1).map(r=>`
               <tr class="editable-row" data-date="${r.date}">
                 <td class="date-cell">${r.date}</td>
-                <td class="day-cell">${getDayAbbr(r.date)}</td>
                 <td>${fmt(r.sales)}</td>
                 <td>${fmt(r.purchases)}</td>
                 <td>${fmt(r.expenses)}</td>
@@ -578,7 +568,7 @@ function loadDateIntoForm(dateStr){
 document.getElementById('dateInput').addEventListener('change', (e)=> loadDateIntoForm(e.target.value));
 
 document.getElementById('saveBtn').addEventListener('click', async ()=>{
-  if(!webAppUrl){ return; }
+  if(!webAppUrl){ openModal(); return; }
   const date = document.getElementById('dateInput').value;
   if(!date){ showToast('اختر التاريخ'); return; }
   const values = recalc();
