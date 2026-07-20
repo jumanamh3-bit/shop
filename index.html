@@ -371,6 +371,7 @@ function recalc(){
   const networkOthers = Number(document.getElementById('networkOthers').value)||0;
   const notesPurchases = document.getElementById('notesPurchases').value || '';
   const notesExpenses = document.getElementById('notesExpenses').value || '';
+  const dayAbbr = getDayAbbr(document.getElementById('dateInput').value);
 
   const netCash = sales - purchases - expenses;
   const netNetwork = networkStore - networkOthers;
@@ -390,7 +391,7 @@ function recalc(){
   document.getElementById('sum_netNetwork').textContent = fmt(netNetwork);
   document.getElementById('sum_total').textContent = fmt(total);
 
-  return {sales, purchases, expenses, netCash, networkStore, networkOthers, netNetwork, notesPurchases, notesExpenses};
+  return {sales, purchases, expenses, netCash, networkStore, networkOthers, netNetwork, notesPurchases, notesExpenses, dayAbbr};
 }
 
 ids.forEach(id => document.getElementById(id).addEventListener('input', recalc));
